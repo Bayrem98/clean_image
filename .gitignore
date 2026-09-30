@@ -1,31 +1,39 @@
-# Environnements virtuels
+# --- Environnements virtuels ---
 venv/
 .venv/
 env/
 ENV/
 
-# Python
+# --- Python ---
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.ipynb_checkpoints/
 
-# IDE
+# --- Backups ---
+.git_backup/
+
+# --- IDE / éditeurs ---
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS
+# --- OS ---
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Modèles / données lourdes (adapte selon ton projet)
-*.pth
-*.ckpt
-*.safetensors
-*.onnx
-data/
+# --- Variables d'environnement ---
+.env
+.env.local
+
+# --- Sorties / données ---
+downloads/
 outputs/
-
-.git_backup/
+*.log
+*.tmp

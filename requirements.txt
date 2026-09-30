@@ -1,0 +1,15 @@
+# --- Web framework ---
+Flask>=3.0.0
+
+# --- Inpainting engine ---
+iopaint>=1.3.0
+
+# --- Deep learning ---
+torch>=2.0.0
+torchvision>=0.15.0
+
+# --- Utilitaires ---
+Pillow>=10.0.0
+numpy>=1.24.0
+requests>=2.31.0
+python-dotenv>=1.0.0
