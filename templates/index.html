@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Supprimer la signature</title>
+<style>
+ * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+ body { margin: 0; padding: 30px; background: #0f172a; color: #e2e8f0; }
+ h1 { font-size: 22px; margin-bottom: 20px; }
+ .card { max-width: 720px; margin: auto; background: #1e293b; padding: 24px; border-radius: 12px; }
+ input[type=text] {
+   width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155;
+   background: #0f172a; color: #e2e8f0; font-size: 14px;
+ }
+ button {
+   margin-top: 14px; padding: 12px 20px; border: none; border-radius: 8px;
+   background: #3b82f6; color: white; font-weight: 600; cursor: pointer;
+   font-size: 14px;
+ }
+ button:disabled { opacity: .5; cursor: not-allowed; }
+ #previewWrap { margin-top: 20px; position: relative; display: none; user-select: none; }
+ #previewWrap img, #previewWrap video { max-width: 100%; display: block; border-radius: 8px; }
+ #selector {
+   position: absolute; border: 2px dashed #ef4444; background: rgba(239,68,68,.25);
+   cursor: move; display: none;
+ }
+ #status { margin-top: 14px; font-size: 14px; }
+ #result a { color: #60a5fa; font-weight: 600; }
+ .hint { font-size: 12px; color: #94a3b8; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="card">
+ <h1>🧹 Supprimer la signature d'une image / vidéo</h1>
+
+ <input type="text" id="url" placeholder="Colle ici le lien direct (.jpg, .png, .mp4...)" />
+ <button id="loadBtn">Charger</button>
+
+ <div id="previewWrap">
+   <img id="previewImg" style="display:none" />
+   <video id="previewVideo" style="display:none" controls></video>
+   <div id="selector"></div>
+ </div>
+
+ <p class="hint" id="hint" style="display:none">
+   Dessine la zone de la signature en glissant la souris sur l'aperçu (ou déplace le rectangle rouge).
+ </p>
+
+ <button id="processBtn" style="display:none">🚀 Traiter & télécharger</button>
+
+ <div id="status"></div>
+ <div id="result"></div>
+</div>
+
+<script>
+const urlInput = document.getElementById('url');
+const loadBtn = document.getElementById('loadBtn');
+const previewWrap = document.getElementById('previewWrap');
+const previewImg = document.getElementById('previewImg');
+const previewVideo = document.getElementById('previewVideo');
+const selector = document.getElementById('selector');
+const processBtn = document.getElementById('processBtn');
+const status = document.getElementById('status');
+const result = document.getElementById('result');
+const hint = document.getElementById('hint');
+
+let mediaType = null;
+
+loadBtn.onclick = () => {
+  const url = urlInput.value.trim();
+  if (!url) return;
+
+  previewWrap.style.display = 'block';
+  selector.style.display = 'none';
+  processBtn.style.display = 'inline-block';
+  hint.style.display = 'block';
+  status.textContent = "";
+  result.innerHTML = "";
+
+  // Try to guess from extension for the preview
+  const ext = url.split('?')[0].split('.').pop().toLowerCase();
+  const isVideo = ['mp4','mov','avi','mkv','webm'].includes(ext);
+
+  if (isVideo) {
+    mediaType = 'video';
+    previewImg.style.display = 'none';
+    previewVideo.style.display = 'block';
+    previewVideo.src = url;
+  } else {
+    mediaType = 'image';
+    previewVideo.style.display = 'none';
+    previewImg.style.display = 'block';
+    previewImg.src = url;
+  }
+};
+
+// Dessin de la zone
+let drawing = false, startX, startY;
+previewWrap.addEventListener('mousedown', e => {
+ if (e.target === selector) return;
+ drawing = true;
+ const rect = previewWrap.getBoundingClientRect();
+ startX = e.clientX - rect.left;
+ startY = e.clientY - rect.top;
+ selector.style.display = 'block';
+ selector.style.left = startX + 'px';
+ selector.style.top = startY + 'px';
+ selector.style.width = '0px';
+ selector.style.height = '0px';
+});
+
+document.addEventListener('mousemove', e => {
+ if (!drawing) return;
+ const rect = previewWrap.getBoundingClientRect();
+ const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+ const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+ selector.style.left = Math.min(startX, x) + 'px';
+ selector.style.top = Math.min(startY, y) + 'px';
+ selector.style.width = Math.abs(x - startX) + 'px';
+ selector.style.height = Math.abs(y - startY) + 'px';
+});
+
+document.addEventListener('mouseup', () => drawing = false);
+
+// Déplacement du rectangle existant
+let dragging = false, offsetX = 0, offsetY = 0;
+selector.addEventListener('mousedown', e => {
+ e.stopPropagation();
+ dragging = true;
+ const sRect = selector.getBoundingClientRect();
+ offsetX = e.clientX - sRect.left;
+ offsetY = e.clientY - sRect.top;
+});
+document.addEventListener('mousemove', e => {
+ if (!dragging) return;
+ const rect = previewWrap.getBoundingClientRect();
+ let x = e.clientX - rect.left - offsetX;
+ let y = e.clientY - rect.top - offsetY;
+ x = Math.max(0, Math.min(x, rect.width - selector.offsetWidth));
+ y = Math.max(0, Math.min(y, rect.height - selector.offsetHeight));
+ selector.style.left = x + 'px';
+ selector.style.top = y + 'px';
+});
+document.addEventListener('mouseup', () => dragging = false);
+
+processBtn.onclick = async () => {
+ const url = urlInput.value.trim();
+ const mediaRect = mediaType === 'image' ? previewImg.getBoundingClientRect() :
+                                               previewVideo.getBoundingClientRect();
+ const sRect = selector.getBoundingClientRect();
+ const wrapRect = previewWrap.getBoundingClientRect();
+
+ // Position du média dans le wrapper
+ const mediaLeft = mediaRect.left - wrapRect.left;
+ const mediaTop = mediaRect.top - wrapRect.top;
+
+ const sLeft = sRect.left - wrapRect.left;
+ const sTop = sRect.top - wrapRect.top;
+
+ const box = [
+   (sLeft - mediaLeft) / mediaRect.width,
+   (sTop - mediaTop) / mediaRect.height,
+   sRect.width / mediaRect.width,
+   sRect.height / mediaRect.height
+ ];
+
+ if (box[2] <= 0.001 || box[3] <= 0.001) {
+   status.textContent = "❌ Dessine d'abord la zone de la signature.";
+   return;
+ }
+
+ status.textContent = "⏳ Traitement en cours...";
+ processBtn.disabled = true;
+
+ try {
+   const res = await fetch('/process', {
+     method: 'POST',
+     headers: {'Content-Type': 'application/json'},
+     body: JSON.stringify({url, box})
+   });
+   const data = await res.json();
+   if (data.error) {
+     status.textContent = "❌ " + data.error;
+   } else {
+     status.textContent = "✅ Fichier prêt !";
+     result.innerHTML = `<a href="/download/${data.file}" download>Télécharger le fichier nettoyé</a>`;
+   }
+ } catch (err) {
+   status.textContent = "❌ Erreur réseau : " + err.message;
+ }
+ processBtn.disabled = false;
+};
+</script>
+</body>
+</html>

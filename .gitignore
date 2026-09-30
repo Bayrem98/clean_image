@@ -1,0 +1,31 @@
+# Environnements virtuels
+venv/
+.venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Modèles / données lourdes (adapte selon ton projet)
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+data/
+outputs/
+
+.git_backup/
